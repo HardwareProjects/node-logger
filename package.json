@@ -1,0 +1,35 @@
+{
+  "name": "node-logger",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/HardwareProjects/node-logger"
+  },
+  "description": "Simple yet powerful logger. Logs to file and/or console, different loglevels, logs date, logs origin file, logs errors with stack trace, ...",
+  "keywords": [
+    "logger",
+    "log",
+    "node-logger",
+    "node",
+    "tag",
+    "file",
+    "json"
+  ],
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc -p src/ && echo build success"
+  },
+  "author": {
+    "name": "David Neuy",
+    "email": "",
+    "url": "http://hardwareprojects.com"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=5.1.0"
+  },
+  "dependencies": {
+    "app-root-path": "^1.0.0",
+    "strip-json-comments": "^2.0.1",
+    "callsite": "^1.0.0"
+  }
+}

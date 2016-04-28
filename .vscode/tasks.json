@@ -1,0 +1,44 @@
+// The build task in this file is started with Ctrl+Shift+b.
+// The test task in this file is started with Ctrl-Shift-t.
+
+// Available variables which can be used inside of strings.
+// ${workspaceRoot}: the root folder of the team
+// ${file}: the current opened file
+// ${fileBasename}: the current opened file's basename
+// ${fileDirname}: the current opened file's dirname
+// ${fileExtname}: the current opened file's extension
+// ${cwd}: the current working directory of the spawned process
+
+// A task runner that calls the Typescript compiler (tsc) and
+// compiles based on a tsconfig.json file that is present in
+// the root of the folder open in VSCode.
+{
+    "version": "0.1.0",
+    // Command is the program that runs the tasks as tsc, npm, jake, gulp.
+	"command": "npm",
+    // Argument to the command.
+    "args": ["run"],
+    // Print command to output window.
+	"echoCommand": true,
+    // Shell commands are executed in a shell interpreter (e.g. cmd.exe, bash, ...).
+	"isShellCommand": true,
+    // Show the output window always instead of only if unrecognized errors occur.
+	"showOutput": "always",
+    
+	"tasks": [
+		// Start build task with Ctrl+Shift+b
+		{
+			"taskName": "build",
+            // If suppressTaskName is false, then the command will get the task name as argument.
+			"suppressTaskName": false,
+			// Whether this task maps to the default build command.
+			"isBuildCommand": true,
+            // Whether this task maps to the default test command.
+            "isTestCommand": false,
+			// Use the standard tsc problem matcher to find compile problems in the output.
+			"problemMatcher": "$tsc",
+            // Will the task remain active and check for file changes.
+            "isWatching": false
+		}
+	]
+}

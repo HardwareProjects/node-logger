@@ -1,0 +1,10 @@
+{   
+    // Verbosity of the log messages. Supported are "OFF", "ERROR", "WARN", "INFO", "DEBUG".
+    "level": "INFO",
+    // Log all messages (with sufficient verbosity/level) to "logfile.log" and errors additionally to stderr.
+    "destinations": ["logfile.log", "stderr"]
+    // Write errors to stderr and other messages (with sufficient verbosity/level) to stdout.
+    // "destinations": ["stdout", "stderr"]
+    // Write all messages (with sufficient verbosity/level) to "logfile.log".
+    // "destinations": ["logfile.log"]
+}
