@@ -10,5 +10,11 @@
         "sourceMap": true,
         "declaration": true,
         "outDir": "../lib"
-    }
+    },
+    "files": [
+        "index.ts",
+        "../typings/lib.es6.d.ts",
+        "../typings/node/node.d.ts",
+        "../typings/callsite/callsite.d.ts"
+    ]
 }

@@ -1,7 +1,3 @@
-/// <reference path="../typings/lib.es6.d.ts" />
-/// <reference path="../typings/node/node.d.ts" />
-/// <reference path="../typings/callsite/callsite.d.ts" />
-
 // This module provides logging services for node.js applications.
 // It is based on the following goals.
 // - The user should be able to set the Loglevel in the config file.

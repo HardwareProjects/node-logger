@@ -4,7 +4,7 @@ Simple yet powerful logger. Logs to file and/or console, different loglevels, lo
 ## Installation
 
 ```bash
-$ npm install HardwareProjects/node-logger --save
+npm install HardwareProjects/node-logger --save
 ```
 
 To use the logger, copy the `node-logger.json` file to the base directory of your node app. Do not rename the file.

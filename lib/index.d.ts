@@ -1,6 +1,3 @@
-/// <reference path="../typings/lib.es6.d.ts" />
-/// <reference path="../typings/node/node.d.ts" />
-/// <reference path="../typings/callsite/callsite.d.ts" />
 export declare const LogLevel: {
     OFF: string;
     ERROR: string;
