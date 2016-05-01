@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "outDir": "out"
+    },
+    "files": [
+        "logger-test.ts",
+        "../lib/node-logger.d.ts",
+        "../typings/lib.es6.d.ts",
+        "../typings/node/node.d.ts",
+        "../typings/callsite/callsite.d.ts",
+        "../typings/tape/tape.d.ts",
+        "../typings/app-root-path/app-root-path.d.ts"
+    ]
+}

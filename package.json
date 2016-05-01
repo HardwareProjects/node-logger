@@ -16,7 +16,8 @@
   ],
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc -p src/ && echo build success"
+    "build": "tsc -p src/ && echo build success",
+    "test": "tsc -p test/ && echo build success"
   },
   "author": {
     "name": "David Neuy",
@@ -31,5 +32,8 @@
     "app-root-path": "^1.0.0",
     "strip-json-comments": "^2.0.1",
     "callsite": "^1.0.0"
+  },
+  "devDependencies": {
+    "tape": "^4.4.0"
   }
 }

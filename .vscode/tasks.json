@@ -39,6 +39,19 @@
 			"problemMatcher": "$tsc",
             // Will the task remain active and check for file changes.
             "isWatching": false
+		},
+        // Start build task with Ctrl-Shift-t
+        {
+			"taskName": "test",
+            // If suppressTaskName is false, then the command will get the task name as argument.
+			"suppressTaskName": false,
+			// hether this task maps to the default build command.
+			"isBuildCommand": false,
+            // Whether this task maps to the default test command.
+            "isTestCommand": true,
+			// use the standard tsc problem matcher to find compile problems
+			// in the output.
+			"problemMatcher": "$tsc"
 		}
 	]
 }
