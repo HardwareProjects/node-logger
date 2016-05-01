@@ -12,6 +12,7 @@
     },
     "files": [
         "logger-test.ts",
+        "readme-examples-text.ts",
         "../lib/node-logger.d.ts",
         "../typings/lib.es6.d.ts",
         "../typings/node/node.d.ts",

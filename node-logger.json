@@ -2,15 +2,20 @@
     // Verbosity of the log messages. Supported are "OFF", "ERROR", "WARN", "INFO", "DEBUG". DEBUG is the default if omitted.
     "level": "INFO",
     
-    // The "destinations" array property is used by the logFunction. The following descriptions apply to the default logFunction.
+    // The "destinations" array property is used by the logFunctions. The following descriptions apply to the default logFunctions.
     // Log all messages (with sufficient verbosity/level) to "logfile.log" and errors additionally to stderr.
-    "destinations": ["logfile.log", "stderr"]
+    "destinations": ["logfile.log", "stderr"],
     // Write errors to stderr and other messages (with sufficient verbosity/level) to stdout. This is the default if omitted.
     // "destinations": ["stdout", "stderr"]
     // Write all messages (with sufficient verbosity/level) to "logfile.log".
     // "destinations": ["logfile.log"]
     
-    // Path to a custom log function that may modify the log message and write it to a destination.
+    // The log functions get information about the message as arguments and write it to a destination.
+    // Log messages in JSON format.
+    "logFunctions": ["defaultJson"]
+    // Log messages in text format.
+    // "logFunctions": ["defaultText"]
+    // Log messages in text format and additionally using the log function "yourLogFunction" in module "log-helper-module".
     // For an example see function "allDest0WarnDest1" in the index.ts/index.js file of the node-logger module.
-    // "logFunction": "$baseDir/lib/log-helper-module.js:yourLogFunction"
+    // "logFunctions": ["defaultText", "$baseDir/lib/log-helper-module.js:yourLogFunction"]
 }

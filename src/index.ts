@@ -41,20 +41,21 @@ export const LogLevel = {
 
 const logLevelNames = Object.keys(LogLevel);
 
-export interface LogFunction {
+export interface LogFn {
     (message: Message, shouldBeLogged: Boolean, destinations: NodeJS.WritableStream[]): Promise<void>;
 }
 
-export interface ApplicationOptions {
+export interface LoggerOptions {
     // Specifies the minimum importance that messages must have to be logged.
     // Eg. WARN will only log messages with level WARN and ERROR.
     level?: string;
-    // A list of destinations, that will be used by an internal or a provided logFunction.
+    // A list of destinations, that will be used by the internal or a provided log functions.
     // Supported destination values are WritableStream, file path or the strings "stdout" or "stderr".
     destinations?: Array<string|NodeJS.WritableStream>;
-    // The function that may modify the log message and write it to a destination.
-    // Supported are the name of a predefined logFunction or a callback function.
-    logFunction?: string|LogFunction;
+    // The functions that may modify the log message and write it to a destination.
+    // Supported are the names of the predefined log functions "defaultText" and "defaultJson" or 
+    // the path to a custom log function as "$baseDir/lib/log-helper-module.js:yourLogFunction".
+    logFunctions?: (string|LogFn)[];
 }
 
 export interface ModulOptions {
@@ -62,49 +63,60 @@ export interface ModulOptions {
     tags?: string[];
 }
 
-export interface LoggerOptions extends ApplicationOptions {
-}
-
 export interface Message {
-    isoDate: string;
+    date: Date;
     level: string;
     tags: string[];
     text: string;
     stack?: string;
 }
 
+export const LogFunction = {
+    defaultText: function defaultText(message: Message, shouldBeLogged: Boolean, destinations: NodeJS.WritableStream[]): Promise<void> {
+        const isoDate = message.date.toISOString();
+        const level = (message.level + "     ").substr(0, 5);
+        const tags = message.tags.join(", ");
+        const text = message.stack ? message.text + " STACK: " + message.stack : message.text;
+        const messageText = `${isoDate} ${level} [${tags}] - ${text}` + EOL; 
+        return writeToDefaultDestination(messageText, message.level, shouldBeLogged, destinations);
+    },
+    defaultJson: function defaultJson(message: Message, shouldBeLogged: Boolean, destinations: NodeJS.WritableStream[]): Promise<void> {
+        const isoDate = message.date.toISOString();
+        let messageCpy = Object.assign({isoDate: isoDate}, message);
+        delete messageCpy.date;
+        // Writing JSON messages will always write a single line with a trailing EOL, because JSON.stringify(message) 
+        // returns a string without direct line breaks. (Strings within the stringifyd json object containing "\n" 
+        // characters are escaped to "\\n" and will display as "\n" in the logger output.")
+        const messageText = JSON.stringify(messageCpy) + EOL;
+        return writeToDefaultDestination(messageText, message.level, shouldBeLogged, destinations);
+    }
+}
+
 const defaultOptions: LoggerOptions = {
     level: LogLevel.DEBUG,
     destinations: [process.stdout, process.stderr],
-    logFunction: allDest0WarnDest1.name,
+    logFunctions: [LogFunction.defaultText.name],
 };
 
-export let logFunctions = new Map<string, Function>();
-logFunctions.set(allDest0WarnDest1.name, allDest0WarnDest1);
-
-// log function. The returned promise is resolved when the message is written.
+// Default log function. The returned promise is resolved when the message is written.
 // Always write WARN or ERROR messages to destinations[1] if it exists and it is not equal to destinations[0].
 // Always write to destinations[0] except
 // - If the message was already written to the console by destinations[1] and destinations[0]
 //   is also a console (so that WARN and ERROR messages are only printed once to the console).
-export function allDest0WarnDest1(message: Message, shouldBeLogged: Boolean, destinations: NodeJS.WritableStream[]): Promise<void> {
+function writeToDefaultDestination(messageText: string, level: string, shouldBeLogged: Boolean, destinations: NodeJS.WritableStream[]): Promise<void> {
     if (!shouldBeLogged) {
         return Promise.resolve();
     }
     return new Promise<void>((resolve, reject) => {
-        const writeToDest1 = !isFirstLoglevelGreaterEqualSecond(message.level, LogLevel.INFO)
+        const writeToDest1 = !isFirstLoglevelGreaterEqualSecond(level, LogLevel.INFO)
             && destinations[1] !== undefined && destinations[0] !== destinations[1];
         const isBothTty = isTty(destinations[0]) && isTty(destinations[1]);
         const writeToDest0 = !(writeToDest1 && isBothTty);
         const streamA = writeToDest1 ? destinations[1] : destinations[0];
-        const streamB = writeToDest1 && writeToDest0 ? destinations[0] : null;
-        const messageStr = JSON.stringify(message) + EOL;
-        // Writing messageStr will always write a single line with a trailing EOL, because JSON.stringify(message) 
-        // returns a string without direct line breaks. (Strings within the stringifyd json object containing "\n" 
-        // characters are escaped to "\\n" and will display as "\n" in the logger output.")
-        streamA.write(messageStr, () => {
+        const streamB = writeToDest1 && writeToDest0 ? destinations[0] : undefined;
+        streamA.write(messageText, () => {
             if (streamB) {
-                streamB.write(messageStr, () => resolve());
+                streamB.write(messageText, () => resolve());
             } else {
                 resolve();
             }
@@ -126,39 +138,65 @@ export function createFromArguments(options: LoggerOptions, tags: string[] = [])
     if (Logger.instance) {
         return new Logger(Logger.instance.getOptions(), tagsWithCaller);
     }
-    return new Logger({ level: options.level, destinations: options.destinations, logFunction: options.logFunction }, tagsWithCaller);
+    return new Logger({ level: options.level, destinations: options.destinations, logFunctions: options.logFunctions }, tagsWithCaller);
 }
 
 export class Logger implements LoggerOptions, ModulOptions {
-    static instance: Logger = null;
+    static instance: Logger = undefined;
     level: string;
     tags: string[];
     destinations: NodeJS.WritableStream[];
-    logFunction: LogFunction;
+    logFunctions = [] as LogFn[];
 
     constructor({ level = defaultOptions.level,
                   destinations = defaultOptions.destinations,
-                  logFunction = defaultOptions.logFunction,
+                  logFunctions = defaultOptions.logFunctions,
                 }, tags: string[] = []) {
         checkLoglevel(level);
         this.level = level;
         this.setDestinations(destinations);
-        this.setLogFunction(logFunction);
+        this.setLogFunctions(logFunctions);
         this.tags = tags;
         Logger.instance = this;
     }
 
-    private setLogFunction(logFunction: string|LogFunction) {
-        if (typeof logFunction === "string") {
-            if (logFunctions.has(logFunction)) {
-                this.logFunction = logFunctions.get(logFunction) as any;
-            } else {
-                throw new Error(`The logFunction with name '${logFunction}' is not known.`);
+    private setLogFunctions(logFunctions: (string|LogFn)[]) {
+        for (const logFunction of logFunctions) {
+            if (typeof logFunction === "string") {
+                if (logFunction === LogFunction.defaultText.name) {
+                    this.logFunctions.push(LogFunction.defaultText);
+                } else if (logFunction === LogFunction.defaultJson.name) {
+                    this.logFunctions.push(LogFunction.defaultText);
+                } else {
+                    const customLogFn = this.tryParseCustomLogFnPath(logFunction);
+                    if (customLogFn) {
+                        this.logFunctions.push(customLogFn);
+                    } else {
+                        throw new Error(`LogFunction value '${logFunction}' is invalid. Must be either '${LogFunction.defaultText.name}' or `
+                            + `'${LogFunction.defaultJson.name}' or in the format '$baseDir/lib/log-helper-module.js:yourLogFunction'.`);
+                    }
+                }
             }
-        } else if (typeof logFunction === "function") {
-            this.logFunction = logFunction;
-        } else {
-            throw new TypeError(`The argument 'logFunction' has unexpected type '${typeof logFunction}'.`);
+            else if (typeof logFunction === "function") {
+                this.logFunctions.push(logFunction);
+            }
+            else {
+                throw new TypeError(`The argument 'logFunction' has unexpected type '${typeof logFunction}'.`);
+            }
+        }
+    }
+    
+    private tryParseCustomLogFnPath(customLogFnPath: string) {
+        if (customLogFnPath.indexOf(":") !== -1) {
+            const [modulePath, fnName] = customLogFnPath.split(":", 2);
+            const modulePath2 = modulePath.replace(/\$baseDir\b/, appRoot);
+            const logFnModule = require(modulePath2);
+            if (logFnModule[fnName]) {
+                return logFnModule[fnName];
+            }
+            else {
+                throw new Error(`Error loading log function '${fnName}' from module path '${modulePath2}'.`);
+            }
         }
     }
 
@@ -174,7 +212,7 @@ export class Logger implements LoggerOptions, ModulOptions {
                     const s = fs.createWriteStream(dest, { flags: "a" });
                     this.destinations.push(s);
                 }
-            } else if (dest instanceof stream.Writable || dest instanceof stream.Transform) {
+            } else if ("write" in dest) {
                 this.destinations.push(dest);
             } else {
                 throw new TypeError(`One of the elements of argument 'destinations' has unexpected type '${typeof dest}'.`);
@@ -187,7 +225,7 @@ export class Logger implements LoggerOptions, ModulOptions {
         return {
             level:        this.level,
             destinations: this.destinations,
-            logFunction:  this.logFunction,
+            logFunctions: this.logFunctions,
             tags:         this.tags.slice(),
         };
     }
@@ -228,7 +266,7 @@ export class Logger implements LoggerOptions, ModulOptions {
     log(level: "OFF"|"ERROR"|"WARN"|"INFO"|"DEBUG", format: any, ...optionalParams: any[]): Promise<void>;
     log(format: any, ...optionalParams: any[]): Promise<void>;
     log(arg1: any, arg2: any, ...arg3: any[]): Promise<void> {
-        if (typeof arg1 === "string" && logLevelNames.indexOf(arg1) > -1) {
+        if (typeof arg1 === "string" && logLevelNames.indexOf(arg1) !== -1) {
             return this.doLog(arg1, [], arg2, arg3);
         } else {
             // arg1 contains the format string and arg2 and arg3 the format arguments.
@@ -244,7 +282,7 @@ export class Logger implements LoggerOptions, ModulOptions {
     log2(level: "OFF"|"ERROR"|"WARN"|"INFO"|"DEBUG", tags: string[]|string, format: any, ...optionalParams: any[]): Promise<void>;
     log2(tags: string[]|string, format: any, ...optionalParams: any[]): Promise<void>;
     log2(arg1: any, arg2: any, arg3: any, ...arg4: any[]): Promise<void> {
-        if (typeof arg1 === "string" && logLevelNames.indexOf(arg1) > -1) {
+        if (typeof arg1 === "string" && logLevelNames.indexOf(arg1) !== -1) {
             return this.doLog(arg1, arg2, arg3, arg4);
         } else {
             // arg2 contains the format string and arg3 and arg4 the format arguments.
@@ -261,14 +299,18 @@ export class Logger implements LoggerOptions, ModulOptions {
         const shouldBeLogged = isFirstLoglevelGreaterEqualSecond(this.level, level) || [].concat(tags).indexOf("always") > -1;
         let messageText = optionalParams.length > 0 ? util.format(format, ...optionalParams) : util.format(format);
         let message = {} as Message;
-        message.isoDate = new Date().toISOString();
+        message.date = new Date();
         message.level = level;
         message.tags = this.tags.concat(tags as any);
         message.text = messageText;
         if (format instanceof Error) {
             message.stack = format.stack;
         }
-        return this.logFunction(message, shouldBeLogged, this.destinations);
+        let logFnPromises: Promise<void>[] = [];
+        for (const logFn of this.logFunctions) {
+            logFnPromises.push(logFn(message, shouldBeLogged, this.destinations));
+        }
+        return Promise.all(logFnPromises) as any as Promise<void>;
     }
 
     isErrorOrVerboser() {
@@ -306,9 +348,7 @@ function parseConfigSync(configPath: string) {
 
 
 function isTty(writableStream: NodeJS.WritableStream) {
-    return writableStream as tty.WriteStream
-        // writableStream.isTTY is undefined for some streams.
-        && ((writableStream as tty.WriteStream).isTTY || false);
+    return "isTTY" in writableStream;
 }
 
 function isFirstLoglevelGreaterEqualSecond(firstLoglevel: string, secondLoglevel: string) {

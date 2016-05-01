@@ -13,6 +13,7 @@ test("Logger test", async (assert) => {
     const log = Log.createFromConfigFile();
     log.level = "INFO";
     log.destinations = testStreams;
+    log.logFunctions = [Log.LogFunction.defaultJson];
     
     const isError = log.isErrorOrVerboser();
     const isWarn = log.isWarnOrVerboser();

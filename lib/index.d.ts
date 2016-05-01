@@ -5,28 +5,28 @@ export declare const LogLevel: {
     INFO: string;
     DEBUG: string;
 };
-export interface LogFunction {
+export interface LogFn {
     (message: Message, shouldBeLogged: Boolean, destinations: NodeJS.WritableStream[]): Promise<void>;
 }
-export interface ApplicationOptions {
+export interface LoggerOptions {
     level?: string;
     destinations?: Array<string | NodeJS.WritableStream>;
-    logFunction?: string | LogFunction;
+    logFunctions?: (string | LogFn)[];
 }
 export interface ModulOptions {
     tags?: string[];
 }
-export interface LoggerOptions extends ApplicationOptions {
-}
 export interface Message {
-    isoDate: string;
+    date: Date;
     level: string;
     tags: string[];
     text: string;
     stack?: string;
 }
-export declare let logFunctions: Map<string, Function>;
-export declare function allDest0WarnDest1(message: Message, shouldBeLogged: Boolean, destinations: NodeJS.WritableStream[]): Promise<void>;
+export declare const LogFunction: {
+    defaultText: (message: Message, shouldBeLogged: Boolean, destinations: NodeJS.WritableStream[]) => Promise<void>;
+    defaultJson: (message: Message, shouldBeLogged: Boolean, destinations: NodeJS.WritableStream[]) => Promise<void>;
+};
 export declare function createFromConfigFile(tags?: string[]): Logger;
 export declare function createFromArguments(options: LoggerOptions, tags?: string[]): Logger;
 export declare class Logger implements LoggerOptions, ModulOptions {
@@ -34,13 +34,14 @@ export declare class Logger implements LoggerOptions, ModulOptions {
     level: string;
     tags: string[];
     destinations: NodeJS.WritableStream[];
-    logFunction: LogFunction;
-    constructor({level, destinations, logFunction}: {
+    logFunctions: LogFn[];
+    constructor({level, destinations, logFunctions}: {
         level?: string;
         destinations?: (string | NodeJS.WritableStream)[];
-        logFunction?: string | LogFunction;
+        logFunctions?: (string | LogFn)[];
     }, tags?: string[]);
-    private setLogFunction(logFunction);
+    private setLogFunctions(logFunctions);
+    private tryParseCustomLogFnPath(customLogFnPath);
     private setDestinations(destinations);
     getOptions(): LoggerOptions & ModulOptions;
     error(format: any, ...optionalParams: any[]): Promise<void>;
